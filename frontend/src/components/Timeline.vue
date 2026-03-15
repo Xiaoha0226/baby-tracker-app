@@ -20,12 +20,37 @@
           <div class="record-header">
             <span class="record-icon">{{ RECORD_TYPE_EMOJI[record.type] }}</span>
             <span class="record-type">{{ RECORD_TYPE_NAME[record.type] }}</span>
-            <button class="delete-btn" @click="$emit('delete', record.id)">×</button>
+            <div class="action-buttons">
+              <button class="edit-btn" @click="handleEdit(record)">✏️</button>
+              <button class="delete-btn" @click="$emit('delete', record.id)">×</button>
+            </div>
           </div>
-          <div class="record-details">
+          <div v-if="editingRecord?.id !== record.id" class="record-details">
             {{ formatDetails(record) }}
           </div>
-          <div v-if="record.note" class="record-note">
+          <div v-else class="edit-form">
+            <div class="form-group">
+              <label>记录时间</label>
+              <input 
+                type="datetime-local" 
+                v-model="editForm.recordTime" 
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <label>备注</label>
+              <textarea 
+                v-model="editForm.note" 
+                class="form-textarea"
+                placeholder="添加备注..."
+              ></textarea>
+            </div>
+            <div class="form-actions">
+              <button class="cancel-btn" @click="cancelEdit">取消</button>
+              <button class="save-btn" @click="saveEdit">保存</button>
+            </div>
+          </div>
+          <div v-if="editingRecord?.id !== record.id && record.note" class="record-note">
             {{ record.note }}
           </div>
         </div>
@@ -35,6 +60,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { BabyRecord } from '@/api'
 import { RECORD_TYPE_EMOJI, RECORD_TYPE_NAME } from '@/stores/records'
 
@@ -44,7 +70,14 @@ defineProps<{
 
 defineEmits<{
   delete: [id: number]
+  edit: [record: BabyRecord]
 }>()
+
+const editingRecord = ref<BabyRecord | null>(null)
+const editForm = ref({
+  recordTime: '',
+  note: ''
+})
 
 function formatTime(datetime: string) {
   const date = new Date(datetime)
@@ -69,6 +102,41 @@ function formatDetails(record: BabyRecord) {
       return hours > 0 ? `${hours}小时${mins}分钟` : `${mins}分钟`
     default:
       return details.description || ''
+  }
+}
+
+function handleEdit(record: BabyRecord) {
+  editingRecord.value = record
+  // 确保recordTime格式正确转换为datetime-local格式
+  let formattedRecordTime = ''
+  try {
+    const recordTime = new Date(record.recordTime)
+    if (!isNaN(recordTime.getTime())) {
+      formattedRecordTime = recordTime.toISOString().substring(0, 16)
+    }
+  } catch (error) {
+    console.error('Error parsing recordTime:', error)
+  }
+  Object.assign(editForm.value, {
+    recordTime: formattedRecordTime,
+    note: record.note || ''
+  })
+}
+
+function cancelEdit() {
+  editingRecord.value = null
+}
+
+function saveEdit() {
+  if (editingRecord.value) {
+    const updatedRecord = {
+      ...editingRecord.value,
+      recordTime: editForm.value.recordTime,
+      note: editForm.value.note,
+      details: editingRecord.value.details
+    }
+    $emit('edit', updatedRecord)
+    editingRecord.value = null
   }
 }
 </script>
@@ -170,18 +238,92 @@ function formatDetails(record: BabyRecord) {
   flex: 1;
 }
 
-.delete-btn {
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.edit-btn, .delete-btn {
   background: none;
   border: none;
   color: var(--text-light);
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   padding: 0;
   line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-btn:hover {
+  color: var(--primary-pink);
 }
 
 .delete-btn:hover {
   color: #C62828;
+}
+
+.edit-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--primary-pink-light);
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid var(--primary-pink-light);
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  background: var(--white);
+  color: var(--text-primary);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cancel-btn, .save-btn {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.save-btn {
+  background: var(--primary-pink);
+  color: white;
 }
 
 .record-details {

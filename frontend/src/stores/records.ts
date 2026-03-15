@@ -101,6 +101,29 @@ export const useRecordsStore = defineStore('records', () => {
     }
   }
 
+  async function updateRecord(id: number, data: Partial<CreateRecordDto>) {
+    loading.value = true
+    error.value = null
+    try {
+      const res: any = await recordsApi.update(id, data)
+      // 处理API响应格式，从data字段获取数据
+      const updatedRecord = res.data || res
+      // 更新本地记录
+      const index = records.value.findIndex(r => r.id === id)
+      if (index !== -1) {
+        records.value[index] = updatedRecord
+      }
+      // 更新今日汇总
+      await fetchTodaySummary()
+      return updatedRecord
+    } catch (e: any) {
+      error.value = e.message || '更新记录失败'
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function analyzeVoiceText(text: string): Promise<CreateRecordDto[] | null> {
     loading.value = true
     error.value = null
@@ -142,6 +165,7 @@ export const useRecordsStore = defineStore('records', () => {
     fetchTodaySummary,
     createRecord,
     deleteRecord,
+    updateRecord,
     analyzeVoiceText,
     fetchStats
   }

@@ -78,7 +78,7 @@
     </div>
     
     <div class="records-section">
-      <Timeline :records="filteredRecords" @delete="handleDelete" />
+      <Timeline :records="filteredRecords" @delete="handleDelete" @edit="handleEdit" />
     </div>
     
     <VoiceInput @record="handleVoiceRecord" />
@@ -141,6 +141,25 @@ function handleTypeChange() {
 async function handleDelete(id: number) {
   if (confirm('确定要删除这条记录吗？')) {
     await recordsStore.deleteRecord(id)
+  }
+}
+
+async function handleEdit(record: any) {
+  try {
+    // 确保recordTime格式正确
+    const recordTime = new Date(record.recordTime)
+    if (!isNaN(recordTime.getTime())) {
+      await recordsStore.updateRecord(record.id, {
+        type: record.type,
+        recordTime: record.recordTime,
+        note: record.note,
+        details: record.details
+      })
+    } else {
+      console.error('Invalid recordTime:', record.recordTime)
+    }
+  } catch (error) {
+    console.error('编辑记录失败:', error)
   }
 }
 

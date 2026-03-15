@@ -13,6 +13,7 @@
           <input
             v-model="username"
             type="text"
+            name="username"
             class="input-field"
             placeholder="请输入用户名"
             required
@@ -24,6 +25,7 @@
           <input
             v-model="password"
             type="password"
+            name="password"
             class="input-field"
             placeholder="请输入密码"
             required

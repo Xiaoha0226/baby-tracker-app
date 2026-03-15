@@ -1,0 +1,30 @@
+# 依赖
+node_modules/
+
+# 环境
+.env
+.env.local
+.env.*.local
+
+# 测试
+coverage/
+test-results/
+playwright-report/
+
+# 构建产物
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+logs/
