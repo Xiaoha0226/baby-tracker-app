@@ -22,7 +22,7 @@
             <span class="record-type">{{ RECORD_TYPE_NAME[record.type] }}</span>
             <div class="action-buttons">
               <button class="edit-btn" @click="handleEdit(record)">✏️</button>
-              <button class="delete-btn" @click="$emit('delete', record.id)">×</button>
+              <button class="delete-btn" @click="emit('delete', record.id)">×</button>
             </div>
           </div>
           <div v-if="editingRecord?.id !== record.id" class="record-details">
@@ -44,6 +44,80 @@
                 class="form-textarea"
                 placeholder="添加备注..."
               ></textarea>
+            </div>
+            <!-- 详情编辑部分 -->
+            <div v-if="editingRecord?.type === 'feeding'" class="form-group">
+              <label>奶量 (ml)</label>
+              <input 
+                type="number" 
+                v-model.number="editForm.details.amount" 
+                class="form-input"
+                placeholder="输入奶量"
+                min="0"
+              />
+              <label class="mt-2">侧边</label>
+              <select v-model="editForm.details.side" class="form-input">
+                <option value="">请选择</option>
+                <option value="left">左边</option>
+                <option value="right">右边</option>
+              </select>
+            </div>
+            <div v-else-if="editingRecord?.type === 'sleep'" class="form-group">
+              <label>睡眠时长 (分钟)</label>
+              <input 
+                type="number" 
+                v-model.number="editForm.details.duration" 
+                class="form-input"
+                placeholder="输入睡眠时长"
+                min="0"
+              />
+            </div>
+            <div v-else-if="editingRecord?.type === 'food'" class="form-group">
+              <label>辅食名称</label>
+              <input 
+                type="text" 
+                v-model="editForm.details.food" 
+                class="form-input"
+                placeholder="输入辅食名称"
+              />
+              <label class="mt-2">辅食量</label>
+              <input 
+                type="text" 
+                v-model="editForm.details.amount" 
+                class="form-input"
+                placeholder="输入辅食量"
+              />
+            </div>
+            <div v-else-if="editingRecord?.type === 'poop'" class="form-group">
+              <label>大便情况</label>
+              <input 
+                type="text" 
+                v-model="editForm.details.consistency" 
+                class="form-input"
+                placeholder="输入大便情况"
+              />
+            </div>
+            <div v-else-if="editingRecord?.type === 'diaper'" class="form-group">
+              <label>尿布情况</label>
+              <div class="checkbox-group">
+                <label>
+                  <input type="checkbox" v-model="editForm.details.wet" />
+                  湿了
+                </label>
+                <label>
+                  <input type="checkbox" v-model="editForm.details.dirty" />
+                  脏了
+                </label>
+              </div>
+            </div>
+            <div v-else-if="editingRecord?.type === 'other'" class="form-group">
+              <label>描述</label>
+              <input 
+                type="text" 
+                v-model="editForm.details.description" 
+                class="form-input"
+                placeholder="输入描述"
+              />
             </div>
             <div class="form-actions">
               <button class="cancel-btn" @click="cancelEdit">取消</button>
@@ -68,7 +142,7 @@ defineProps<{
   records: BabyRecord[]
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   delete: [id: number]
   edit: [record: BabyRecord]
 }>()
@@ -76,7 +150,8 @@ defineEmits<{
 const editingRecord = ref<BabyRecord | null>(null)
 const editForm = ref({
   recordTime: '',
-  note: ''
+  note: '',
+  details: {}
 })
 
 function formatTime(datetime: string) {
@@ -107,20 +182,30 @@ function formatDetails(record: BabyRecord) {
 
 function handleEdit(record: BabyRecord) {
   editingRecord.value = record
-  // 确保recordTime格式正确转换为datetime-local格式
+  // 确保recordTime格式正确转换为datetime-local格式（北京时间）
   let formattedRecordTime = ''
   try {
-    const recordTime = new Date(record.recordTime)
-    if (!isNaN(recordTime.getTime())) {
-      formattedRecordTime = recordTime.toISOString().substring(0, 16)
+    if (record.recordTime) {
+      // 将UTC时间转换为北京时间（UTC+8）
+      const utcTime = new Date(record.recordTime)
+      const beijingTime = new Date(utcTime.getTime() + 8 * 60 * 60 * 1000)
+      formattedRecordTime = beijingTime.toISOString().substring(0, 16)
     }
   } catch (error) {
     console.error('Error parsing recordTime:', error)
   }
-  Object.assign(editForm.value, {
-    recordTime: formattedRecordTime,
-    note: record.note || ''
-  })
+  // 回填备注信息，确保卡片里的文案能够正确回填
+  const note = record.note || ''
+  // 回填详情信息，确保语音识别出来的文案能够正确回填
+  const details = record.details || {}
+  editForm.value.recordTime = formattedRecordTime
+  editForm.value.note = note
+  editForm.value.details = { ...details }
+  console.log('Editing record:', record)
+  console.log('Record recordTime (UTC):', record.recordTime)
+  console.log('Formatted recordTime (Beijing):', formattedRecordTime)
+  console.log('Note:', note)
+  console.log('Details:', details)
 }
 
 function cancelEdit() {
@@ -133,9 +218,9 @@ function saveEdit() {
       ...editingRecord.value,
       recordTime: editForm.value.recordTime,
       note: editForm.value.note,
-      details: editingRecord.value.details
+      details: editForm.value.details
     }
-    $emit('edit', updatedRecord)
+    emit('edit', updatedRecord)
     editingRecord.value = null
   }
 }
@@ -283,6 +368,24 @@ function saveEdit() {
   color: var(--text-secondary);
   margin-bottom: 4px;
   font-weight: 500;
+}
+
+.form-group label.mt-2 {
+  margin-top: 8px;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0;
+  cursor: pointer;
 }
 
 .form-input, .form-textarea {
