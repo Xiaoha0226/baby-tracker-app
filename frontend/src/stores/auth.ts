@@ -47,14 +47,23 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     try {
       const res: any = await authApi.login({ username, password })
-      if (res.code === 0) {
+      // 检查响应格式，适应API拦截器的行为
+      if (res.access_token) {
+        // 直接返回了data字段的情况
+        token.value = res.access_token
+        user.value = res.user
+        localStorage.setItem('token', res.access_token)
+        localStorage.setItem('user', JSON.stringify(res.user))
+        return true
+      } else if (res.code === 0 && res.data?.access_token) {
+        // 完整响应格式的情况
         token.value = res.data.access_token
         user.value = res.data.user
         localStorage.setItem('token', res.data.access_token)
         localStorage.setItem('user', JSON.stringify(res.data.user))
         return true
       } else {
-        error.value = res.message
+        error.value = res.message || '登录失败'
         return false
       }
     } catch (e: any) {

@@ -48,7 +48,8 @@ export const useRecordsStore = defineStore('records', () => {
         params.date = date
       }
       const res: any = await recordsApi.getAll(params)
-      records.value = res
+      // 处理API响应格式，从data字段获取数据
+      records.value = res.data || res
     } catch (e: any) {
       error.value = e.message || '获取记录失败'
     } finally {
@@ -59,7 +60,8 @@ export const useRecordsStore = defineStore('records', () => {
   async function fetchTodaySummary() {
     try {
       const res: any = await recordsApi.getTodaySummary()
-      todaySummary.value = res
+      // 处理API响应格式，从data字段获取数据
+      todaySummary.value = res.data || res
     } catch (e) {
       console.error('获取今日汇总失败', e)
     }
@@ -70,9 +72,11 @@ export const useRecordsStore = defineStore('records', () => {
     error.value = null
     try {
       const res: any = await recordsApi.create(data)
-      records.value.unshift(res)
+      // 处理API响应格式，从data字段获取数据
+      const newRecord = res.data || res
+      records.value.unshift(newRecord)
       await fetchTodaySummary()
-      return res
+      return newRecord
     } catch (e: any) {
       error.value = e.message || '创建记录失败'
       return null
@@ -83,11 +87,16 @@ export const useRecordsStore = defineStore('records', () => {
 
   async function deleteRecord(id: number) {
     try {
+      // 调用删除API
       await recordsApi.delete(id)
+      // 从本地记录中移除
       records.value = records.value.filter(r => r.id !== id)
+      // 更新今日汇总
       await fetchTodaySummary()
       return true
-    } catch (e) {
+    } catch (e: any) {
+      console.error('删除记录失败:', e)
+      error.value = e.message || '删除记录失败'
       return false
     }
   }
@@ -97,7 +106,8 @@ export const useRecordsStore = defineStore('records', () => {
     error.value = null
     try {
       const res: any = await aiApi.analyze(text)
-      return res
+      // 处理API响应格式，从data字段获取数据
+      return res.data || res
     } catch (e: any) {
       error.value = e.message || 'AI分析失败'
       return null
@@ -110,7 +120,8 @@ export const useRecordsStore = defineStore('records', () => {
     loading.value = true
     try {
       const res: any = await recordsApi.getStats(type, days)
-      statsData.value = res
+      // 处理API响应格式，从data字段获取数据
+      statsData.value = res.data || res
     } catch (e) {
       console.error('获取统计数据失败', e)
     } finally {

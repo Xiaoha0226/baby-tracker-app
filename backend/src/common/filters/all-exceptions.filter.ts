@@ -25,10 +25,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     response.status(status).json({
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: ctx.getRequest().url,
+      code: status,
       message,
+      data: null,
+      timestamp: new Date().toISOString(),
     });
   }
 }

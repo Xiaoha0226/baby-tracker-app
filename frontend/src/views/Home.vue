@@ -99,10 +99,13 @@ const authStore = useAuthStore()
 const recordsStore = useRecordsStore()
 
 const selectedDate = ref(new Date().toISOString().split('T')[0])
-const selectedType = ref<RecordType | ''>('')
 
 const todaySummary = computed(() => recordsStore.todaySummary)
 const filteredRecords = computed(() => recordsStore.filteredRecords)
+const selectedType = computed({
+  get: () => recordsStore.selectedType,
+  set: (value) => { recordsStore.selectedType = value }
+})
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
