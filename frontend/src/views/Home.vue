@@ -12,55 +12,68 @@
       </button>
     </header>
     
-    <div class="summary-section">
-      <SummaryCard
-        title="今日奶量"
-        :value="todaySummary?.totalMilk || 0"
-        unit="ml"
-        icon="🍼"
-        color="pink"
-      />
-      <SummaryCard
-        title="换尿布"
-        :value="todaySummary?.diaperCount || 0"
-        unit="次"
-        icon="👶"
-        color="blue"
-      />
-      <SummaryCard
-        title="睡眠时长"
-        :value="formatDuration(todaySummary?.sleepDuration || 0)"
-        unit=""
-        icon="😴"
-        color="purple"
-      />
-      <SummaryCard
-        title="大便次数"
-        :value="todaySummary?.poopCount || 0"
-        unit="次"
-        icon="💩"
-        color="yellow"
-      />
+    <div class="summary-card-container">
+      <div class="summary-card">
+        <h3 class="summary-title">今日汇总</h3>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-icon">🍼</div>
+            <div class="summary-content">
+              <div class="summary-value">{{ todaySummary?.totalMilk || 0 }}<span class="summary-unit">ml</span></div>
+              <div class="summary-label">奶量</div>
+            </div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-icon">👶</div>
+            <div class="summary-content">
+              <div class="summary-value">{{ todaySummary?.diaperCount || 0 }}<span class="summary-unit">次</span></div>
+              <div class="summary-label">换尿布</div>
+            </div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-icon">😴</div>
+            <div class="summary-content">
+              <div class="summary-value">{{ formatDuration(todaySummary?.sleepDuration || 0) }}</div>
+              <div class="summary-label">睡眠</div>
+            </div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-icon">💩</div>
+            <div class="summary-content">
+              <div class="summary-value">{{ todaySummary?.poopCount || 0 }}<span class="summary-unit">次</span></div>
+              <div class="summary-label">大便</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     
     <div class="filter-section">
-      <div class="date-picker">
-        <input
-          type="date"
-          v-model="selectedDate"
-          class="date-input"
-          @change="handleDateChange"
-        />
-      </div>
-      <div class="type-filter">
-        <button
-          v-for="(name, type) in RECORD_TYPE_NAME"
-          :key="type"
-          :class="['filter-btn', { active: selectedType === type }]"
-          @click="selectedType = selectedType === type ? '' : type as RecordType"
-        >
-          {{ RECORD_TYPE_EMOJI[type as RecordType] }} {{ name }}
-        </button>
+      <div class="filter-row">
+        <div class="date-picker">
+          <input
+            type="date"
+            v-model="selectedDate"
+            class="date-input"
+            @change="handleDateChange"
+          />
+        </div>
+        <div class="type-filter">
+          <select
+            v-model="selectedType"
+            class="filter-select"
+            @change="handleTypeChange"
+          >
+            <option value="">全部类型</option>
+            <option
+              v-for="(name, type) in RECORD_TYPE_NAME"
+              :key="type"
+              :value="type"
+            >
+              {{ RECORD_TYPE_EMOJI[type as RecordType] }} {{ name }}
+            </option>
+          </select>
+        </div>
       </div>
     </div>
     
@@ -115,6 +128,11 @@ function formatDuration(minutes: number) {
 
 async function handleDateChange() {
   await recordsStore.fetchRecords(selectedDate.value)
+}
+
+function handleTypeChange() {
+  // 类型筛选自动应用，不需要额外操作
+  // filteredRecords 计算属性会自动处理
 }
 
 async function handleDelete(id: number) {
@@ -190,19 +208,85 @@ watch(selectedDate, async () => {
   font-weight: 500;
 }
 
-.summary-section {
+.summary-card-container {
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.summary-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.summary-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin-bottom: 24px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  transition: all 0.2s ease;
+}
+
+.summary-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.summary-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.summary-content {
+  text-align: center;
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.summary-unit {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 2px;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 .filter-section {
   margin-bottom: 20px;
 }
 
+.filter-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
 .date-picker {
-  margin-bottom: 12px;
+  flex: 1;
 }
 
 .date-input {
@@ -216,26 +300,29 @@ watch(selectedDate, async () => {
 }
 
 .type-filter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex: 1;
 }
 
-.filter-btn {
-  background: var(--white);
+.filter-select {
+  width: 100%;
+  padding: 12px 16px;
   border: 2px solid var(--primary-pink-light);
-  padding: 8px 12px;
-  border-radius: var(--border-radius-full);
-  font-size: 12px;
+  border-radius: var(--border-radius-md);
+  font-size: 16px;
+  background: var(--white);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--text-secondary);
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238D6E63' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.5a.5.5 0 0 1-.5-.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11a.5.5 0 0 1-.5.5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
 }
 
-.filter-btn.active {
-  background: var(--primary-pink);
+.filter-select:focus {
   border-color: var(--primary-pink);
-  color: var(--white);
+  box-shadow: 0 0 0 4px rgba(255, 182, 193, 0.2);
 }
 
 .records-section {
