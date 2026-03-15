@@ -1,0 +1,30 @@
+# 依赖
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+logs/
+
+# 测试
+coverage/
+
+# 环境
+.env
+.env.local
+.env.*.local
+
+# 数据库
+data/
+*.db
+*.sqlite
