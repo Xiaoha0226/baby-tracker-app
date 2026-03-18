@@ -3,12 +3,15 @@
 # 数据初始化脚本
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$(dirname "$SCRIPT_DIR")"
+BACKEND_DIR="$APP_DIR/backend"
+
 echo "开始初始化测试数据..."
 
 # 清除现有数据
 echo "1. 清除现有数据..."
-cd /Users/suqing/Documents/09code_study/aitrae_use/baby-tracker-app/backend
-sqlite3 data/baby-tracker.db "DELETE FROM records; DELETE FROM users;"
+sqlite3 "$BACKEND_DIR/data/baby-tracker.db" "DELETE FROM records; DELETE FROM users;"
 echo "✓ 数据清除完成"
 
 # 获取 token
