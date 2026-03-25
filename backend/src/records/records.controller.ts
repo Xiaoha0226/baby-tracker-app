@@ -29,22 +29,43 @@ export class RecordsController {
   @Get()
   findAll(
     @Request() req: any,
+    @Query('babyId') babyId?: string,
     @Query('type') type?: string,
     @Query('date') date?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.recordsService.findAll(req.user.userId, type, date, startDate, endDate);
+    return this.recordsService.findAll(
+      req.user.userId,
+      babyId ? parseInt(babyId) : undefined,
+      type,
+      date,
+      startDate,
+      endDate,
+    );
   }
 
   @Get('today-summary')
-  getTodaySummary(@Request() req: any) {
-    return this.recordsService.getTodaySummary(req.user.userId);
+  getTodaySummary(@Request() req: any, @Query('babyId') babyId?: string) {
+    return this.recordsService.getTodaySummary(
+      req.user.userId,
+      babyId ? parseInt(babyId) : undefined,
+    );
   }
 
   @Get('stats')
-  getStats(@Request() req: any, @Query('type') type: string, @Query('days') days?: string) {
-    return this.recordsService.getStats(req.user.userId, type, days ? parseInt(days) : 30);
+  getStats(
+    @Request() req: any,
+    @Query('type') type: string,
+    @Query('babyId') babyId?: string,
+    @Query('days') days?: string,
+  ) {
+    return this.recordsService.getStats(
+      req.user.userId,
+      type,
+      babyId ? parseInt(babyId) : undefined,
+      days ? parseInt(days) : 30,
+    );
   }
 
   @Get(':id')

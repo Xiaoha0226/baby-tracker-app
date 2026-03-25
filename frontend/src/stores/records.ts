@@ -39,7 +39,7 @@ export const useRecordsStore = defineStore('records', () => {
     return result.sort((a, b) => new Date(b.recordTime).getTime() - new Date(a.recordTime).getTime())
   })
 
-  async function fetchRecords(date?: string) {
+  async function fetchRecords(date?: string, babyId?: number) {
     loading.value = true
     error.value = null
     try {
@@ -47,8 +47,10 @@ export const useRecordsStore = defineStore('records', () => {
       if (date) {
         params.date = date
       }
+      if (babyId) {
+        params.babyId = babyId
+      }
       const res: any = await recordsApi.getAll(params)
-      // 处理API响应格式，从data字段获取数据
       records.value = res.data || res
     } catch (e: any) {
       error.value = e.message || '获取记录失败'
@@ -57,10 +59,9 @@ export const useRecordsStore = defineStore('records', () => {
     }
   }
 
-  async function fetchTodaySummary() {
+  async function fetchTodaySummary(babyId?: number) {
     try {
-      const res: any = await recordsApi.getTodaySummary()
-      // 处理API响应格式，从data字段获取数据
+      const res: any = await recordsApi.getTodaySummary(babyId)
       todaySummary.value = res.data || res
     } catch (e) {
       console.error('获取今日汇总失败', e)
@@ -72,10 +73,9 @@ export const useRecordsStore = defineStore('records', () => {
     error.value = null
     try {
       const res: any = await recordsApi.create(data)
-      // 处理API响应格式，从data字段获取数据
       const newRecord = res.data || res
       records.value.unshift(newRecord)
-      await fetchTodaySummary()
+      await fetchTodaySummary(data.babyId)
       return newRecord
     } catch (e: any) {
       error.value = e.message || '创建记录失败'
@@ -87,11 +87,8 @@ export const useRecordsStore = defineStore('records', () => {
 
   async function deleteRecord(id: number) {
     try {
-      // 调用删除API
       await recordsApi.delete(id)
-      // 从本地记录中移除
       records.value = records.value.filter(r => r.id !== id)
-      // 更新今日汇总
       await fetchTodaySummary()
       return true
     } catch (e: any) {
@@ -106,14 +103,11 @@ export const useRecordsStore = defineStore('records', () => {
     error.value = null
     try {
       const res: any = await recordsApi.update(id, data)
-      // 处理API响应格式，从data字段获取数据
       const updatedRecord = res.data || res
-      // 更新本地记录
       const index = records.value.findIndex(r => r.id === id)
       if (index !== -1) {
         records.value[index] = updatedRecord
       }
-      // 更新今日汇总
       await fetchTodaySummary()
       return updatedRecord
     } catch (e: any) {
@@ -129,7 +123,6 @@ export const useRecordsStore = defineStore('records', () => {
     error.value = null
     try {
       const res: any = await aiApi.analyze(text)
-      // 处理API响应格式，从data字段获取数据
       return res.data || res
     } catch (e: any) {
       error.value = e.message || 'AI分析失败'
@@ -139,11 +132,10 @@ export const useRecordsStore = defineStore('records', () => {
     }
   }
 
-  async function fetchStats(type: string, days: number = 30) {
+  async function fetchStats(type: string, days: number = 30, babyId?: number) {
     loading.value = true
     try {
-      const res: any = await recordsApi.getStats(type, days)
-      // 处理API响应格式，从data字段获取数据
+      const res: any = await recordsApi.getStats(type, babyId, days)
       statsData.value = res.data || res
     } catch (e) {
       console.error('获取统计数据失败', e)

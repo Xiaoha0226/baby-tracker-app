@@ -8,6 +8,11 @@
       <div class="placeholder"></div>
     </header>
     
+    <div class="baby-info-bar" v-if="currentBaby">
+      <span class="baby-label">当前宝宝:</span>
+      <span class="baby-name">{{ currentBaby.name }}</span>
+    </div>
+    
     <div class="chart-section">
       <div class="chart-card">
         <h3 class="chart-title">🍼 奶量趋势</h3>
@@ -45,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -59,6 +64,7 @@ import {
   Filler
 } from 'chart.js'
 import { useRecordsStore } from '@/stores/records'
+import { useBabiesStore } from '@/stores/babies'
 
 ChartJS.register(
   CategoryScale,
@@ -72,11 +78,14 @@ ChartJS.register(
 )
 
 const recordsStore = useRecordsStore()
+const babiesStore = useBabiesStore()
 
 const milkData = ref<{ date: string; value: number }[]>([])
 const diaperData = ref<{ date: string; value: number }[]>([])
 const poopData = ref<{ date: string; value: number }[]>([])
 const sleepData = ref<{ date: string; value: number }[]>([])
+
+const currentBaby = computed(() => babiesStore.currentBaby)
 
 const chartOptions = {
   responsive: true,
@@ -153,30 +162,43 @@ const sleepChartData = computed(() => ({
   }]
 }))
 
-onMounted(async () => {
-  await recordsStore.fetchStats('feeding', 30)
+async function loadStats() {
+  if (!currentBaby.value) return
+  
+  const babyId = currentBaby.value.id
+  
+  await recordsStore.fetchStats('feeding', 30, babyId)
   milkData.value = recordsStore.statsData.map(d => ({
     date: d.date.slice(5),
     value: d.value
   }))
   
-  await recordsStore.fetchStats('diaper', 30)
+  await recordsStore.fetchStats('diaper', 30, babyId)
   diaperData.value = recordsStore.statsData.map(d => ({
     date: d.date.slice(5),
     value: d.value
   }))
   
-  await recordsStore.fetchStats('poop', 30)
+  await recordsStore.fetchStats('poop', 30, babyId)
   poopData.value = recordsStore.statsData.map(d => ({
     date: d.date.slice(5),
     value: d.value
   }))
   
-  await recordsStore.fetchStats('sleep', 30)
+  await recordsStore.fetchStats('sleep', 30, babyId)
   sleepData.value = recordsStore.statsData.map(d => ({
     date: d.date.slice(5),
     value: Math.round(d.value / 60)
   }))
+}
+
+onMounted(async () => {
+  await babiesStore.initBabies()
+  await loadStats()
+})
+
+watch(() => babiesStore.currentBabyId, async () => {
+  await loadStats()
 })
 </script>
 
@@ -208,6 +230,27 @@ onMounted(async () => {
 
 .placeholder {
   width: 40px;
+}
+
+.baby-info-bar {
+  background: var(--soft-pink);
+  padding: 10px 16px;
+  border-radius: var(--border-radius-md);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.baby-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.baby-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .chart-section {

@@ -148,7 +148,11 @@ const emit = defineEmits<{
 }>()
 
 const editingRecord = ref<BabyRecord | null>(null)
-const editForm = ref({
+const editForm = ref<{
+  recordTime: string
+  note: string
+  details: Record<string, any>
+}>({
   recordTime: '',
   note: '',
   details: {}

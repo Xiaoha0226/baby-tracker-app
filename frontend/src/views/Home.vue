@@ -1,12 +1,18 @@
 <template>
   <div class="home-page">
     <header class="page-header">
-      <router-link to="/stats" class="stats-btn" role="link" aria-label="统计数据">
-        📊 统计
-      </router-link>
+      <div class="header-left">
+        <router-link to="/stats" class="stats-btn" role="link" aria-label="统计数据">
+          📊 统计
+        </router-link>
+        <BabySwitcher />
+      </div>
       <div class="date-display">
         {{ formatDate(selectedDate) }}
       </div>
+      <router-link to="/settings" class="settings-btn" role="link" aria-label="设置">
+        ⚙️ 设置
+      </router-link>
       <button class="logout-btn" @click="handleLogout" type="button" aria-label="退出登录">
         退出
       </button>
@@ -89,13 +95,15 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useBabiesStore } from '@/stores/babies'
 import { useRecordsStore, RECORD_TYPE_EMOJI, RECORD_TYPE_NAME, type RecordType } from '@/stores/records'
-import SummaryCard from '@/components/SummaryCard.vue'
+import BabySwitcher from '@/components/BabySwitcher.vue'
 import Timeline from '@/components/Timeline.vue'
 import VoiceInput from '@/components/VoiceInput.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const babiesStore = useBabiesStore()
 const recordsStore = useRecordsStore()
 
 const selectedDate = ref(new Date().toISOString().split('T')[0])
@@ -106,6 +114,7 @@ const selectedType = computed({
   get: () => recordsStore.selectedType,
   set: (value) => { recordsStore.selectedType = value }
 })
+const currentBaby = computed(() => babiesStore.currentBaby)
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
@@ -130,7 +139,9 @@ function formatDuration(minutes: number) {
 }
 
 async function handleDateChange() {
-  await recordsStore.fetchRecords(selectedDate.value)
+  if (currentBaby.value) {
+    await recordsStore.fetchRecords(selectedDate.value, currentBaby.value.id)
+  }
 }
 
 function handleTypeChange() {
@@ -164,8 +175,11 @@ async function handleEdit(record: any) {
 }
 
 async function handleVoiceRecord(records: any[]) {
+  if (!currentBaby.value) return
+  
   for (const record of records) {
     await recordsStore.createRecord({
+      babyId: currentBaby.value.id,
       type: record.type,
       recordTime: record.recordTime,
       details: record.details,
@@ -179,13 +193,24 @@ function handleLogout() {
   router.push('/login')
 }
 
+async function refreshData() {
+  if (currentBaby.value) {
+    await recordsStore.fetchRecords(selectedDate.value, currentBaby.value.id)
+    await recordsStore.fetchTodaySummary(currentBaby.value.id)
+  }
+}
+
 onMounted(async () => {
-  await recordsStore.fetchRecords(selectedDate.value)
-  await recordsStore.fetchTodaySummary()
+  await babiesStore.initBabies()
+  await refreshData()
 })
 
 watch(selectedDate, async () => {
-  await recordsStore.fetchRecords(selectedDate.value)
+  await refreshData()
+})
+
+watch(() => babiesStore.currentBabyId, async () => {
+  await refreshData()
 })
 </script>
 
@@ -203,6 +228,12 @@ watch(selectedDate, async () => {
   margin-bottom: 20px;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .stats-btn {
   background: var(--soft-blue);
   color: var(--text-primary);
@@ -217,6 +248,16 @@ watch(selectedDate, async () => {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.settings-btn {
+  background: var(--mint-green);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: var(--border-radius-full);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .logout-btn {

@@ -1,7 +1,10 @@
-import { IsString, IsEnum, IsDateString, IsOptional, IsObject } from 'class-validator';
+import { IsString, IsEnum, IsDateString, IsOptional, IsObject, IsNumber } from 'class-validator';
 import { RecordType } from '../record.entity';
 
 export class CreateRecordDto {
+  @IsNumber()
+  babyId: number;
+
   @IsString()
   type: string;
 

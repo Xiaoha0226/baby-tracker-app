@@ -30,6 +30,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      localStorage.removeItem('currentBabyId')
       window.location.href = '/login'
     }
     return Promise.reject(error.response?.data || error)
@@ -54,8 +55,25 @@ export interface LoginResponse {
   token: string
 }
 
+export interface Baby {
+  id: number
+  name: string
+  birthDate: string
+  gender: 'boy' | 'girl' | 'unknown'
+  avatar?: string
+  createdAt: string
+}
+
+export interface CreateBabyDto {
+  name: string
+  birthDate: string
+  gender?: 'boy' | 'girl' | 'unknown'
+  avatar?: string
+}
+
 export interface BabyRecord {
   id: number
+  babyId: number
   type: 'feeding' | 'diaper' | 'poop' | 'food' | 'sleep' | 'other'
   recordTime: string
   details: Record<string, any>
@@ -64,6 +82,7 @@ export interface BabyRecord {
 }
 
 export interface CreateRecordDto {
+  babyId: number
   type: string
   recordTime: string
   details?: Record<string, any>
@@ -86,19 +105,45 @@ export interface StatsData {
 export const authApi = {
   register: (data: { username: string; password: string; nickname?: string }) =>
     api.post<any, any>('/auth/register', data),
-  
+
   login: (data: { username: string; password: string }) =>
     api.post<any, any>('/auth/login', data),
-  
+
   getProfile: () =>
-    api.get<any, any>('/auth/profile')
+    api.get<any, any>('/auth/profile'),
+
+  updateProfile: (data: { nickname: string }) =>
+    api.patch<any, any>('/users/me', data),
+
+  changePassword: (data: { currentPassword: string; newPassword: string; confirmPassword: string }) =>
+    api.post<any, any>('/users/change-password', data)
+}
+
+export const babiesApi = {
+  create: (data: CreateBabyDto) =>
+    api.post<any, any>('/babies', data),
+  
+  getAll: () =>
+    api.get<any, any>('/babies'),
+  
+  getById: (id: number) =>
+    api.get<any, any>(`/babies/${id}`),
+  
+  update: (id: number, data: Partial<CreateBabyDto>) =>
+    api.patch<any, any>(`/babies/${id}`, data),
+  
+  delete: (id: number) =>
+    api.delete<any, any>(`/babies/${id}`),
+  
+  createDefault: () =>
+    api.post<any, any>('/babies/default')
 }
 
 export const recordsApi = {
   create: (data: CreateRecordDto) =>
     api.post<any, any>('/records', data),
   
-  getAll: (params?: { type?: string; date?: string; startDate?: string; endDate?: string }) =>
+  getAll: (params?: { babyId?: number; type?: string; date?: string; startDate?: string; endDate?: string }) =>
     api.get<any, any>('/records', { params }),
   
   getById: (id: number) =>
@@ -110,11 +155,11 @@ export const recordsApi = {
   delete: (id: number) =>
     api.delete<any, any>(`/records/${id}`),
   
-  getTodaySummary: () =>
-    api.get<any, any>('/records/today-summary'),
+  getTodaySummary: (babyId?: number) =>
+    api.get<any, any>('/records/today-summary', { params: babyId ? { babyId } : undefined }),
   
-  getStats: (type: string, days?: number) =>
-    api.get<any, any>('/records/stats', { params: { type, days } })
+  getStats: (type: string, babyId?: number, days?: number) =>
+    api.get<any, any>('/records/stats', { params: { type, babyId, days } })
 }
 
 export const aiApi = {

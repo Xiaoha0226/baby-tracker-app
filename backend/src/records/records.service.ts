@@ -15,6 +15,7 @@ export class RecordsService {
   async create(userId: number, createRecordDto: CreateRecordDto): Promise<BabyRecord> {
     const record = this.recordRepository.create({
       userId,
+      babyId: createRecordDto.babyId,
       type: createRecordDto.type as RecordType,
       recordTime: new Date(createRecordDto.recordTime),
       details: createRecordDto.details || {},
@@ -25,12 +26,18 @@ export class RecordsService {
 
   async findAll(
     userId: number,
+    babyId?: number,
     type?: string,
     date?: string,
     startDate?: string,
     endDate?: string,
   ): Promise<BabyRecord[]> {
-    const queryBuilder = this.recordRepository.createQueryBuilder('record').where('record.userId = :userId', { userId });
+    const queryBuilder = this.recordRepository.createQueryBuilder('record')
+      .where('record.userId = :userId', { userId });
+
+    if (babyId) {
+      queryBuilder.andWhere('record.babyId = :babyId', { babyId });
+    }
 
     if (type) {
       queryBuilder.andWhere('record.type = :type', { type });
@@ -85,7 +92,7 @@ export class RecordsService {
     await this.recordRepository.remove(record);
   }
 
-  async getTodaySummary(userId: number): Promise<any> {
+  async getTodaySummary(userId: number, babyId?: number): Promise<any> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -94,25 +101,34 @@ export class RecordsService {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const todayRecords = await this.recordRepository.find({
-      where: {
-        userId,
-        recordTime: Between(today, tomorrow),
-      },
-    });
+    const queryBuilder = this.recordRepository.createQueryBuilder('record')
+      .where('record.userId = :userId', { userId })
+      .andWhere('record.recordTime BETWEEN :today AND :tomorrow', { today, tomorrow });
+
+    if (babyId) {
+      queryBuilder.andWhere('record.babyId = :babyId', { babyId });
+    }
+
+    const todayRecords = await queryBuilder.getMany();
 
     const yesterdayEveningStart = new Date(yesterday);
     yesterdayEveningStart.setHours(18, 0, 0, 0);
     const todayStart = new Date(today);
     todayStart.setHours(0, 0, 0, 0);
 
-    const yesterdayEveningRecords = await this.recordRepository.find({
-      where: {
-        userId,
-        recordTime: Between(yesterdayEveningStart, todayStart),
-        type: RecordType.SLEEP,
-      },
-    });
+    const yesterdayQueryBuilder = this.recordRepository.createQueryBuilder('record')
+      .where('record.userId = :userId', { userId })
+      .andWhere('record.recordTime BETWEEN :yesterdayEveningStart AND :todayStart', {
+        yesterdayEveningStart,
+        todayStart,
+      })
+      .andWhere('record.type = :type', { type: RecordType.SLEEP });
+
+    if (babyId) {
+      yesterdayQueryBuilder.andWhere('record.babyId = :babyId', { babyId });
+    }
+
+    const yesterdayEveningRecords = await yesterdayQueryBuilder.getMany();
 
     let totalMilk = 0;
     let diaperCount = 0;
@@ -153,23 +169,25 @@ export class RecordsService {
     };
   }
 
-  async getStats(userId: number, type: string, days: number = 30): Promise<any[]> {
+  async getStats(userId: number, type: string, babyId?: number, days: number = 30): Promise<any[]> {
     const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
     const startDate = new Date(endDate);
     startDate.setDate(startDate.getDate() - days + 1);
     startDate.setHours(0, 0, 0, 0);
 
-    const records = await this.recordRepository.find({
-      where: {
-        userId,
-        type: type as RecordType,
-        recordTime: Between(startDate, endDate),
-      },
-      order: {
-        recordTime: 'ASC',
-      },
-    });
+    const queryBuilder = this.recordRepository.createQueryBuilder('record')
+      .where('record.userId = :userId', { userId })
+      .andWhere('record.type = :type', { type: type as RecordType })
+      .andWhere('record.recordTime BETWEEN :startDate AND :endDate', { startDate, endDate });
+
+    if (babyId) {
+      queryBuilder.andWhere('record.babyId = :babyId', { babyId });
+    }
+
+    const records = await queryBuilder
+      .orderBy('record.recordTime', 'ASC')
+      .getMany();
 
     const statsMap = new Map<string, number>();
 

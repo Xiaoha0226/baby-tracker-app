@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from '../users/user.entity';
+import { Baby } from '../babies/baby.entity';
 
 export enum RecordType {
   FEEDING = 'feeding',
@@ -21,6 +22,13 @@ export class BabyRecord {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'userId' })
   user: User;
+
+  @Column()
+  babyId: number;
+
+  @ManyToOne(() => Baby, baby => baby.records)
+  @JoinColumn({ name: 'babyId' })
+  baby: Baby;
 
   @Column({
     type: 'varchar',

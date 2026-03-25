@@ -6,6 +6,7 @@ import { RecordsModule } from './records/records.module';
 import { AiModule } from './ai/ai.module';
 import { UsersModule } from './users/users.module';
 import { CommonModule } from './common/common.module';
+import { BabiesModule } from './babies/babies.module';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -39,6 +40,7 @@ import * as path from 'path';
     RecordsModule,
     AiModule,
     UsersModule,
+    BabiesModule,
   ],
 })
 export class AppModule {}

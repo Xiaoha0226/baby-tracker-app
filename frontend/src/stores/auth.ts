@@ -94,6 +94,48 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateProfile(nickname: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const res: any = await authApi.updateProfile({ nickname })
+      if (res.code === 0) {
+        user.value = res.data
+        localStorage.setItem('user', JSON.stringify(res.data))
+        return { success: true, message: res.message }
+      } else {
+        error.value = res.message
+        return { success: false, message: res.message }
+      }
+    } catch (e: any) {
+      const msg = e.message || '更新失败'
+      error.value = msg
+      return { success: false, message: msg }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function changePassword(currentPassword: string, newPassword: string, confirmPassword: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const res: any = await authApi.changePassword({ currentPassword, newPassword, confirmPassword })
+      if (res.code === 0) {
+        return { success: true, message: res.message }
+      } else {
+        error.value = res.message
+        return { success: false, message: res.message }
+      }
+    } catch (e: any) {
+      const msg = e.message || '密码修改失败'
+      error.value = msg
+      return { success: false, message: msg }
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     user,
     token,
@@ -104,6 +146,8 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     logout,
-    fetchProfile
+    fetchProfile,
+    updateProfile,
+    changePassword
   }
 })
