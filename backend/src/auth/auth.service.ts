@@ -57,8 +57,11 @@ export class AuthService {
     });
     await this.userRepository.save(user);
     const { password: _, ...result } = user;
+    // 注册成功后自动登录，返回 access_token
+    const payload = { username: result.username, sub: result.id };
     return {
       message: '注册成功',
+      access_token: this.jwtService.sign(payload),
       user: result,
     };
   }
